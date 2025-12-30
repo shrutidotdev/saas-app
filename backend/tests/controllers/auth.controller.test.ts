@@ -1,56 +1,78 @@
-import AuthController from "../../src/controllers/auth.controller";
-import { AuthService } from "../../src/services/auth.service";
+// backend/tests/services/auth.service.test.ts
+import { AuthService } from '../../src/services/auth.service';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import prisma from '../../src/config/database';
 
-// mock the service methods
-jest.mock("../../src/services/auth.service");
+// Mock the dependencies
+jest.mock('bcryptjs');
+jest.mock('jsonwebtoken');
+jest.mock('../../src/config/database', () => ({
+  __esModule: true,
+  default: {
+    user: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+    },
+    refreshToken: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+    },
+  },
+}));
 
-describe("AuthController", () => {
+describe('AuthService', () => {
+  let authService: AuthService;
+
   beforeEach(() => {
-    jest.clearAllMocks();
+    authService = new AuthService();
+    jest.clearAllMocks();  // This comes from setup.ts, but we repeat it here for safety
   });
 
-  test("register should return 201 and payload", async () => {
-    const mockResult = { user: { id: "1", name: "Test", email: "t@test.com" }, accessToken: "a", refreshToken: "r" };
-    (AuthService as jest.MockedClass<typeof AuthService>).prototype.register = jest.fn().mockResolvedValue(mockResult as any);
+  describe('register', () => {
+    it('should create a new user successfully', async () => {
+      // Arrange
+      const mockUser = {
+        id: '123',
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'hashed123'
+      };
 
-    const req: any = { body: { name: "Test", email: "t@test.com", password: "secret" } };
-    const json = jest.fn();
-    const status = jest.fn().mockReturnValue({ json });
-    const res: any = { status };
-    const next = jest.fn();
+      // Mock the database calls
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed123');
+      (prisma.user.create as jest.Mock).mockResolvedValue(mockUser);
+      (jwt.sign as jest.Mock)
+        .mockReturnValueOnce('access-token-123')
+        .mockReturnValueOnce('refresh-token-123');
 
-    await AuthController.register(req, res, next);
-    expect(status).toHaveBeenCalledWith(201);
-    expect(json).toHaveBeenCalledWith(mockResult);
-  });
+      // Act
+      const result = await authService.register(
+        'John Doe',
+        'john@example.com',
+        'password123'
+      );
 
-  test("login should return 200 and payload", async () => {
-    const mockResult = { user: { id: "1", name: "Test", email: "t@test.com" }, accessToken: "a", refreshToken: "r" };
-    (AuthService as jest.MockedClass<typeof AuthService>).prototype.login = jest.fn().mockResolvedValue(mockResult as any);
+      // Assert
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'john@example.com' }
+      });
+      expect(result.user.email).toBe('john@example.com');
+      expect(result.accessToken).toBe('access-token-123');
+    });
 
-    const req: any = { body: { email: "t@test.com", password: "secret" } };
-    const json = jest.fn();
-    const status = jest.fn().mockReturnValue({ json });
-    const res: any = { status };
-    const next = jest.fn();
+    it('should throw error if user already exists', async () => {
+      // Arrange
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: '123',
+        email: 'john@example.com'
+      });
 
-    await AuthController.login(req, res, next);
-    expect(status).toHaveBeenCalledWith(200);
-    expect(json).toHaveBeenCalledWith(mockResult);
-  });
-
-  test("refreshToken should return 200 and payload", async () => {
-    const mockResult = { accessToken: "a" };
-    (AuthService as jest.MockedClass<typeof AuthService>).prototype.refreshToken = jest.fn().mockResolvedValue(mockResult as any);
-
-    const req: any = { body: { refreshToken: "r" } };
-    const json = jest.fn();
-    const status = jest.fn().mockReturnValue({ json });
-    const res: any = { status };
-    const next = jest.fn();
-
-    await AuthController.refreshToken(req, res, next);
-    expect(status).toHaveBeenCalledWith(200);
-    expect(json).toHaveBeenCalledWith(mockResult);
+      // Act & Assert
+      await expect(
+        authService.register('John Doe', 'john@example.com', 'password123')
+      ).rejects.toThrow('User already exists');
+    });
   });
 });
