@@ -2,9 +2,60 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  User
+  ADMIN
+  PREMIUM
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String
+  role          UserRole @default(User)
+  emailVerified Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt
+
+  tier         SubscriptionTier?
+  refreshToken RefreshToken[]
+  subscription Subscription?
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Subscription {
+  id                  String           @id @default(cuid())
+  userId              String           @unique
+  tier                SubscriptionTier @default(FREE)
+  polarCustomerId     String?          @unique
+  polarSubscriptionId String?          @unique
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([polarCustomerId])
+}
