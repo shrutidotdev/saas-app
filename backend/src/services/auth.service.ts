@@ -1,8 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "../config/database";
+import { config } from "../config/env";
 
 export class AuthService {
   async register(name: string, email: string, password: string) {
@@ -49,18 +48,18 @@ export class AuthService {
   generateToken(userId: string) {
     const accessToken = jwt.sign(
       { userId },
-      process.env.JWT_SECRET as jwt.Secret,
+      config.jwt.secret as jwt.Secret,
       {
-        expiresIn: process.env.JWT_EXPIRES_IN as string,
+        expiresIn: config.jwt.expiresIn as string,
         algorithm: "HS256",
       }
     );
 
     const refreshToken = jwt.sign(
       { userId },
-      process.env.JWT_REFRESH_TOKEN as jwt.Secret,
+      config.jwt.refreshSecret as jwt.Secret,
       {
-        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN as string,
+        expiresIn: config.jwt.refreshExpiresIn as string,
         algorithm: "HS256",
       }
     );
@@ -85,25 +84,28 @@ export class AuthService {
     try {
       const decode = jwt.verify(
         refreshToken,
-        process.env.JWT_REFRESH_TOKEN!
+        config.jwt.refreshSecret!
       ) as { userId: string };
       const tokenRecord = await prisma.refreshToken.findUnique({
         where: { token: refreshToken },
       });
 
       if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
-        throw new Error("Invalid or expired referesh token");
+        throw new Error("Invalid or expired refresh token");
       }
 
       const newAccessToken = jwt.sign(
         { userId: decode.userId },
-        process.env.JWT_SECRET!,
-        { expiresIn: process.env.JWT_EXPIRES_IN!, algorithm: "HS256" }
+        config.jwt.secret!,
+        {
+          expiresIn: config.jwt.expiresIn as string,
+          algorithm: "HS256",
+        }
       );
 
       return { accessToken: newAccessToken };
-    } catch (error) {
-      throw new Error("Invalid refresh token");
+    } catch (error: any) {
+      throw new Error("Invalid or expired refresh token");
     }
   }
 }

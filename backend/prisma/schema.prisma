@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
@@ -27,7 +28,7 @@ model User {
   emailVerified Boolean  @default(false)
 
   createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
   tier         SubscriptionTier?
   refreshToken RefreshToken[]
