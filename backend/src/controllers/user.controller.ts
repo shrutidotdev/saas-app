@@ -39,6 +39,7 @@ class UserController {
   async getUserById(req: Request, res: Response, next: NextFunction) {
     try {
       const id = req.params.id;
+      if (!id) throw new Error("User id is required");
       const user = await this.service.getUserById(id);
       res.status(200).json(user);
     } catch (err: any) {
@@ -49,6 +50,7 @@ class UserController {
   async deleteUser(req: Request, res: Response, next: NextFunction) {
     try {
       const id = req.params.id;
+      if (!id) throw new Error("User id is required");
       const result = await this.service.deleteUser(id);
       res.status(200).json(result);
     } catch (err: any) {
@@ -59,6 +61,7 @@ class UserController {
   async verifyEmail(req: Request, res: Response, next: NextFunction) {
     try {
       const id = req.params.id;
+      if (!id) throw new Error("User id is required");
       const user = await this.service.verifyEmail(id);
       res.status(200).json(user);
     } catch (err: any) {

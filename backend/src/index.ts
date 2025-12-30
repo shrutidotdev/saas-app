@@ -9,6 +9,8 @@ import morgan from 'morgan';
 import {body, validationResult } from 'express-validator'; 
 import { timeStamp } from 'node:console';
 import authRouter from './routes/auth.routes'
+import userRouter from './routes/user.routes'
+import subscriptionRouter from './routes/subscription.routes'
 
 dotenv.config();
 
@@ -26,6 +28,11 @@ app.get('/', (req, res ) => {
 })
 
 app.use('/api/auth', authRouter)
+app.use('/api/users', userRouter)
+app.use('/api/subscriptions', subscriptionRouter)
+
+import { errorHandler } from "./middleware/error.middleware";
+app.use(errorHandler);
 
 app.listen(process.env.PORT, () => {
     console.log(`Server running on port ${process.env.PORT}`);
