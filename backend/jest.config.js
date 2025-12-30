@@ -1,15 +1,17 @@
 ﻿/** @type {import('jest').Config} */
-const config = {
+module.exports = {
+  preset: 'ts-jest',
   testEnvironment: 'node',
-  transform: {
-    '^.+\\.tsx?$': 'ts-jest',
-  },
-  testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$',
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  roots: ['<rootDir>/src', '<rootDir>/tests'],
+  roots: ['<rootDir>/tests'],
   testMatch: ['**/*.test.ts', '**/*.spec.ts'],
-  collectCoverageFrom: ['src/**/*.{ts,js}', '!src/**/*.d.ts'],
+  moduleFileExtensions: ['ts', 'js', 'json'],
+  collectCoverageFrom: [
+    'src/**/*.{ts,js}',
+    '!src/**/*.d.ts',
+    '!src/index.ts'
+  ],
+  coverageDirectory: 'coverage',
+  verbose: true,
+  // Comment this out until you create the setup file
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
 };
-
-module.exports = config;
